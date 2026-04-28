@@ -114,17 +114,12 @@ export function EventoPage() {
   }
 
   const handleCopyLink = () => {
-    const link = `${window.location.origin}/portaria/${eventoAtual?.id}`
+    const link = `${window.location.origin}/e/${eventoAtual?.id}`
     navigator.clipboard.writeText(link)
   }
 
   const handleSendInvite = (participante: Participante) => {
-    const link = generateInviteLink(
-      eventoAtual?.id || '',
-      eventoAtual?.nome || '',
-      participante.nome,
-      participante.email
-    )
+    const link = `${window.location.origin}/e/${eventoAtual?.id}`
     const message = `Olá ${participante.nome}! Você foi convite para ${eventoAtual?.nome}. Confirme sua presença aqui: ${link}`
     const whatsappLink = `https://wa.me/${participante.telefone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(message)}`
     window.open(whatsappLink, '_blank')

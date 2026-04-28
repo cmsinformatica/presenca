@@ -7,15 +7,19 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return response.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { qrCode, telefone } = request.body
+  const { eventoId, nome, telefone } = request.body
 
-  if (!qrCode) {
-    return response.status(400).json({ error: 'qrCode required' })
+  if (!eventoId || !nome || !telefone) {
+    return response.status(400).json({ error: 'Dados incompletos' })
   }
 
   try {
-    const participante = await prisma.participante.findUnique({
-      where: { qrCode },
+    // Buscar participante pelo nome e evento
+    const participante = await prisma.participante.findFirst({
+      where: {
+        eventoId,
+        nome: { contains: nome, mode: 'insensitive' },
+      },
       include: { evento: true },
     })
 
@@ -23,36 +27,35 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return response.status(404).json({ error: 'Participante não encontrado' })
     }
 
-    if (participante.confirmado) {
-      return response.status(400).json({ error: 'Já confirmado' })
-    }
-
+    // Atualizar telefone e confirmar
     const atualizado = await prisma.participante.update({
-      where: { qrCode },
+      where: { id: participante.id },
       data: {
+        telefone,
         confirmado: true,
         confirmadoEm: new Date(),
-        telefone: telefone || participante.telefone,
       },
     })
 
+    // Gerar QR Code
+    const qrCode = JSON.stringify({
+      t: 'P',
+      e: eventoId,
+      p: participante.qrCode,
+    })
+
+    // Enviar notificação Telegram
     await sendNotification({
       tipo: 'confirmacao',
       eventoNome: participante.evento.nome,
-      participanteNome: participante.nome,
-      telefone: telefone || participante.telefone,
-    })
-
-    const qrCheckIn = JSON.stringify({
-      t: 'P',
-      e: participante.eventoId,
-      p: qrCode,
+      participanteNome: nome,
+      telefone: telefone,
     })
 
     return response.status(200).json({
       success: true,
       participante: atualizado,
-      qrCode: qrCheckIn,
+      qrCode,
     })
   } catch (error) {
     console.error('Error:', error)

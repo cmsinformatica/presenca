@@ -1,137 +1,133 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { CheckCircle, AlertTriangle, Loader2, Send, QrCode } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { CheckCircle, AlertTriangle, Loader } from 'lucide-react'
 import { Button, Card, Input } from '../components/ui'
 import { QRCodeGenerator } from '../components/qr'
-import { useEventoStore } from '../stores'
-import { formatDate, formatTime } from '../lib/utils'
 
-interface ConfirmData {
+interface Evento {
+  id: string
   nome: string
-  email: string
-  telefone: string
-  confirmado: boolean
+  descricao?: string
+  data: string
+  horario: string
+  local: string
 }
 
 export function ConfirmarPage() {
-  const {codigo} = useParams<{codigo: string}>()
-  const navigate = useNavigate()
-  const { eventoAtual } = useEventoStore()
+  const { eventoId } = useParams<{ eventoId: string }>()
   
   const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [erro, setErro] = useState('')
+  const [evento, setEvento] = useState<Evento | null>(null)
   const [confirmado, setConfirmado] = useState(false)
-  const [dados, setDados] = useState<ConfirmData | null>(null)
+  const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
-  const [enviando, setEnviando] = useState(false)
+  const [qrCode, setQrCode] = useState('')
 
   useEffect(() => {
-    if (!codigo) {
-      setErro('Código inválido')
+    if (!eventoId) {
+      setErro('Evento inválido')
       setLoading(false)
       return
     }
 
-    const timer = setTimeout(() => {
-      try {
-        const parts = atob(codigo).split(':')
-        if (parts.length < 3) {
-          setErro('Link expirado ou inválido')
-          setLoading(false)
-          return
+    fetch(`/api/evento?id=${eventoId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          setErro(data.error)
+        } else {
+          setEvento(data)
         }
-
-        const [_tipo, eventoNome, nome] = parts
-        setDados({
-          nome: nome,
-          email: parts[2] || '',
-          telefone: '',
-          confirmado: false,
-        })
         setLoading(false)
-      } catch {
-        setErro('Link inválido')
+      })
+      .catch(() => {
+        setErro('Evento não encontrado')
         setLoading(false)
-      }
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [codigo])
+      })
+  }, [eventoId])
 
   const handleConfirmar = async () => {
-    if (!telefone || telefone.length < 10) {
-      alert('Digite um telefone válido')
+    if (!nome || !telefone) {
+      setErro('Preencha nome e telefone')
       return
     }
 
-    setEnviando(true)
+    setSubmitting(true)
+    setErro('')
 
-    await new Promise(r => setTimeout(r, 1000))
+    try {
+      const res = await fetch('/api/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventoId, nome, telefone }),
+      })
 
-    setConfirmado(true)
-    setEnviando(false)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setErro(data.error || 'Erro ao confirmar')
+        setSubmitting(false)
+        return
+      }
+
+      setQrCode(data.qrCode)
+      setConfirmado(true)
+    } catch {
+      setErro('Erro ao confirmar')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
-  if (erro) {
+  if (erro && !evento) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="text-center max-w-sm">
-          <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold mb-2">Ops!</h2>
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-600">{erro}</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Voltar
-          </Button>
         </Card>
       </div>
     )
   }
 
-  if (confirmado) {
-    const qrValue = JSON.stringify({
-      t: 'P',
-      e: btoa(dados?.nome || ''),
-      p: codigo,
-    })
-
+  if (confirmado && qrCode) {
     return (
       <div className="min-h-screen bg-green-50 p-4">
         <Card className="max-w-sm mx-auto text-center">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-green-800 mb-2">
-            confirmed!
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Sua presença foi confirmada
-          </p>
+          <h2 className="text-xl font-bold text-green-800">Confirmado!</h2>
+          <p className="text-gray-600">Sua presença foi confirmada</p>
         </Card>
 
         <Card className="max-w-sm mx-auto mt-4 text-center">
           <h3 className="font-semibold mb-4">Seu QR Code de Entrada</h3>
           <div className="flex justify-center">
-            <QRCodeGenerator value={qrValue} size={220} />
+            <QRCodeGenerator value={qrCode} size={220} />
           </div>
           <p className="text-sm text-gray-500 mt-4">
             Mostre este QR Code na entrada do evento
           </p>
         </Card>
 
-        <Card className="max-w-sm mx-auto mt-4">
-          <h3 className="font-semibold mb-2">Detalhes do Evento</h3>
-          <p className="text-gray-600">{eventoAtual?.nome || 'Workshop React'}</p>
-          <p className="text-sm text-gray-500">
-            {formatDate(eventoAtual?.data || '2026-05-15')} às {eventoAtual?.horario || '14:00'}
-          </p>
-          <p className="text-sm text-gray-500">{eventoAtual?.local || 'Auditório Principal'}</p>
-        </Card>
+        {evento && (
+          <Card className="max-w-sm mx-auto mt-4">
+            <h3 className="font-semibold mb-2">{evento.nome}</h3>
+            <p className="text-sm text-gray-600">
+              {new Date(evento.data).toLocaleDateString('pt-BR')} às {evento.horario}
+            </p>
+            <p className="text-sm text-gray-600">{evento.local}</p>
+          </Card>
+        )}
       </div>
     )
   }
@@ -141,24 +137,36 @@ export function ConfirmarPage() {
       <Card className="max-w-sm mx-auto">
         <h2 className="text-xl font-bold mb-2">Confirmar Presença</h2>
         <p className="text-gray-600 mb-4">
-          Você foi convite para o evento
+          Preencha seus dados para confirmar
         </p>
 
-        <div className="bg-blue-50 p-3 rounded-lg mb-4">
-          <p className="font-medium">{dados?.nome}</p>
-          <p className="text-sm text-gray-600">{dados?.email}</p>
-        </div>
+        {evento && (
+          <div className="bg-blue-50 p-3 rounded-lg mb-4">
+            <p className="font-medium">{evento.nome}</p>
+            <p className="text-sm text-gray-600">
+              {new Date(evento.data).toLocaleDateString('pt-BR')} às {evento.horario}
+            </p>
+            <p className="text-sm text-gray-600">{evento.local}</p>
+          </div>
+        )}
 
         <div className="space-y-3">
           <Input
-            label="Seu Telefone (com WhatsApp)"
+            label="Seu Nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="João Silva"
+          />
+          <Input
+            label="WhatsApp"
             value={telefone}
             onChange={(e) => setTelefone(e.target.value)}
             placeholder="(11) 99999-9999"
           />
+          {erro && <p className="text-red-600 text-sm">{erro}</p>}
           <Button
             onClick={handleConfirmar}
-            loading={enviando}
+            loading={submitting}
             className="w-full"
           >
             Confirmar Presença

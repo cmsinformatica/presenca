@@ -39,6 +39,7 @@ export function App() {
         } />
         <Route path="/p/:qrCode" element={<ParticipantePage />} />
         <Route path="/confirmar/:codigo" element={<ConfirmarPage />} />
+        <Route path="/e/:eventoId" element={<ConfirmarPage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

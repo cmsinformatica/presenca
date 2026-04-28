@@ -1,19 +1,63 @@
 import { VercelRequest, VercelResponse } from '@vercel/node'
 
-interface Body {
-  eventNome?: string
-  participanteNome?: string
+interface NotifyParams {
+  tipo: 'confirmacao' | 'convite' | 'checkin'
+  eventoNome: string
+  participanteNome: string
   telefone?: string
-  action?: string
+  link?: string
 }
 
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse
-) {
+export async function sendNotification(params: NotifyParams) {
+  const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } = process.env
+
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.log('Telegram not configured')
+    return
+  }
+
+  const { tipo, eventoNome, participanteNome, telefone, link } = params
+
+  const emojis = { confirmacao: '✅', convite: '📨', checkin: '🎫' }
+  const emoji = emojis[tipo]
+
+  let message = `${emoji} *Nova Atualização*\n\n`
+  message += `👤 Participante: *${participanteNome}*\n`
+  message += `📅 Evento: *${eventoNome}*\n`
+
+  if (telefone) {
+    message += `📱 WhatsApp: ${telefone}\n`
+  }
+
+  if (tipo === 'confirmacao') {
+    message += `\n✨ Confirmação de presença`
+  } else if (tipo === 'checkin') {
+    message += `\n✨ Check-in realizado`
+  }
+
+  if (link) {
+    message += `\n\n🔗 Link: ${link}`
+  }
+
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown',
+      }),
+    })
+  } catch (error) {
+    console.error('Telegram error:', error)
+  }
+}
+
+export default async function handler(request: VercelRequest, response: VercelResponse) {
   const { TEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } = process.env
 
-  if (!TEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     return response.status(500).json({ error: 'Configuração incompleta' })
   }
 
@@ -21,18 +65,13 @@ export default async function handler(
     return response.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { eventNome, participanteNome, telefone, action } = request.body as Body
+  const { eventNome, participanteNome, telefone, action } = request.body
 
-  const emojis = {
-    confirm: '✅',
-    cancel: '❌',
-    qrcode: '🎫',
-  }
-
+  const emojis = { confirm: '✅', cancel: '❌', qrcode: '🎫' }
   const emoji = emojis[action as keyof typeof emojis] || '📋'
-  
+
   let message = `${emoji} *Nova Atualização*\n\n`
-  
+
   if (participanteNome) {
     message += `👤 Participante: *${participanteNome}*\n`
   }
@@ -42,35 +81,17 @@ export default async function handler(
   if (telefone) {
     message += `📱 WhatsApp: ${telefone}\n`
   }
-  if (action) {
-    const actions = {
-      confirm: '✅ Confirmação de presença',
-      qr: '🎫 QR Code gerado',
-      checkin: '✅ Check-in realizado',
-    }
-    message += `\n✨ ${actions[action as keyof typeof actions] || action}`
-  }
 
   try {
-    const res = await fetch(
-      `https://api.telegram.org/bot${TEGRAM_BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: message,
-          parse_mode: 'Markdown',
-        }),
-      }
-    )
-
-    const data = await res.json()
-    
-    if (!data.ok) {
-      console.error('Telegram API error:', data)
-      return response.status(500).json({ error: 'Failed to send message' })
-    }
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown',
+      }),
+    })
 
     return response.status(200).json({ success: true })
   } catch (error) {

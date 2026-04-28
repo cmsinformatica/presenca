@@ -1,11 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL || '/api'
 
-interface RequestOptions extends RequestInit {
-  token?: string
-}
-
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { token, body, method = 'GET', ...fetchOptions } = options
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem('token')
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -16,9 +12,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
-    method,
-    headers,
-    body,
+    ...options,
+    headers: { ...headers, ...options.headers },
   })
 
   if (!response.ok) {
@@ -30,10 +25,24 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 export const api = {
-  get: <T>(endpoint: string, token?: string) => request<T>(endpoint, { method: 'GET', token }),
-  post: <T>(endpoint: string, data?: unknown, token?: string) =>
-    request<T>(endpoint, { method: 'POST', body: JSON.stringify(data), token }),
-  put: <T>(endpoint: string, data?: unknown, token?: string) =>
-    request<T>(endpoint, { method: 'PUT', body: JSON.stringify(data), token }),
-  delete: <T>(endpoint: string, token?: string) => request<T>(endpoint, { method: 'DELETE', token }),
+  login: (email: string, senha: string) =>
+    request<{ token: string; organizador: any }>('/login', { method: 'POST', body: JSON.stringify({ email, senha }) }),
+
+  getEventos: (organizadorId: string) =>
+    request<any[]>('/eventos?organizadorId=' + organizadorId),
+
+  createEvento: (data: any) =>
+    request<any>('/eventos', { method: 'POST', body: JSON.stringify(data) }),
+
+  getParticipantes: (eventoId: string) =>
+    request<any[]>('/participantes?eventoId=' + eventoId),
+
+  addParticipante: (data: any) =>
+    request<any>('/participantes', { method: 'POST', body: JSON.stringify(data) }),
+
+  confirmar: (qrCode: string, telefone: string) =>
+    request<any>('/confirmar', { method: 'POST', body: JSON.stringify({ qrCode, telefone }) }),
+
+  checkin: (qrCode: string) =>
+    request<any>('/checkin', { method: 'POST', body: JSON.stringify({ qrCode }) }),
 }

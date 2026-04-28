@@ -6,6 +6,7 @@ interface NotifyParams {
   participanteNome: string
   telefone?: string
   link?: string
+  qrCode?: string
 }
 
 export async function sendNotification(params: NotifyParams) {
@@ -16,7 +17,7 @@ export async function sendNotification(params: NotifyParams) {
     return
   }
 
-  const { tipo, eventoNome, participanteNome, telefone, link } = params
+  const { tipo, eventoNome, participanteNome, telefone, link, qrCode } = params
 
   const emojis = { confirmacao: '✅', convite: '📨', checkin: '🎫' }
   const emoji = emojis[tipo]
@@ -37,6 +38,11 @@ export async function sendNotification(params: NotifyParams) {
 
   if (link) {
     message += `\n\n🔗 Link: ${link}`
+  }
+
+  if (qrCode) {
+    // Envia como foto (se for base64) ou como texto
+    message += `\n\n🎫 QR Code: ${qrCode}`
   }
 
   try {

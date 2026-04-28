@@ -44,12 +44,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
       p: participante.qrCode,
     })
 
-    // Enviar notificação Telegram
+    // Enviar notificação Telegram com QR Code
     await sendNotification({
       tipo: 'confirmacao',
       eventoNome: participante.evento.nome,
       participanteNome: nome,
       telefone: telefone,
+      qrCode: qrCode,
     })
 
     return response.status(200).json({

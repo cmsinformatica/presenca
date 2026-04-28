@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organizador {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nome      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  eventos Evento[]
+}
+
+model Evento {
+  id            String   @id @default(cuid())
+  nome          String
+  descricao     String?
+  data         DateTime
+  horario      String
+  local        String
+  organizadorId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizador  Organizador     @relation(fields: [organizadorId], references: [id])
+  participantes Participante[]
+  checkins     CheckIn[]
+}
+
+model Participante {
+  id          String   @id @default(cuid())
+  nome        String
+  email       String
+  telefone    String?
+  eventoId    String
+  qrCode      String   @unique
+  confirmado  Boolean  @default(false)
+  confirmadoEm DateTime?
+  createdAt   DateTime @default(now())
+
+  evento     Evento    @relation(fields: [eventoId], references: [id])
+  checkins   CheckIn[]
+}
+
+model CheckIn {
+  id            String   @id @default(cuid())
+  participanteId String
+  eventoId       String
+  verificadoPor  String   @default("portaria")
+  timestamp     DateTime @default(now())
+  local         String?
+
+  participante Participante @relation(fields: [participanteId], references: [id])
+  evento       Evento       @relation(fields: [eventoId], references: [id])
+}

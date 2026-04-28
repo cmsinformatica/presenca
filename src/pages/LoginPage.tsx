@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Input, Card } from '../components/ui'
 import { useAuthStore } from '../stores'
+import { api } from '../lib/api'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
@@ -17,16 +18,23 @@ export function LoginPage() {
     setLoading(true)
 
     try {
-      if (email === 'demo@demo.com' && password === 'demo') {
-        login(
-          { id: '1', email: 'demo@demo.com', nome: 'Demo' },
-          'demo-token'
-        )
-        navigate('/dashboard')
-      } else {
-        setError('Email ou senha inválidos')
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, senha: password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Email ou senha inválidos')
+        setLoading(false)
+        return
       }
-    } catch {
+
+      login(data.organizador, data.token)
+      navigate('/dashboard')
+    } catch (err) {
       setError('Erro ao fazer login')
     } finally {
       setLoading(false)
@@ -65,7 +73,7 @@ export function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          Demo: demo@demo.com / demo
+          Admin: admin@presenca.com / admin123
         </p>
       </Card>
     </div>

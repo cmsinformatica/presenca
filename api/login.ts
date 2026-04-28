@@ -34,11 +34,38 @@ export default async function handler(request: VercelRequest, response: VercelRe
         })
       }
 
-      // Login normal - buscar no banco
+      // Demo login alternativo
+      if (email === 'demo@demo.com' && senha === 'demo') {
+        let demo = await prisma.organizador.findUnique({ where: { email: 'demo@demo.com' } })
+        
+        if (!demo) {
+          demo = await prisma.organizador.create({
+            data: { 
+              email: 'demo@demo.com', 
+              nome: 'Demo' 
+            },
+          })
+        }
+
+        const token = Buffer.from(`demo:${demo.id}:${Date.now()}`).toString('base64')
+
+        return response.status(200).json({
+          token,
+          organizador: demo,
+        })
+      }
+
+      // Qualquer outro email cria automaticamente (para teste rápido)
       let organizador = await prisma.organizador.findUnique({ where: { email } })
 
       if (!organizador) {
-        return response.status(401).json({ error: 'Usuário não encontrado' })
+        // Criar automaticamente para teste
+        organizador = await prisma.organizador.create({
+          data: { 
+            email, 
+            nome: email.split('@')[0] 
+          },
+        })
       }
 
       const token = Buffer.from(`${organizador.id}:${Date.now()}`).toString('base64')

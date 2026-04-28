@@ -35,7 +35,7 @@ export function EventoPage() {
   const [novoParticipante, setNovoParticipante] = useState({ nome: '', email: '', telefone: '' })
   const [csvData, setCsvData] = useState('')
 
-  useEffect(() => {
+useEffect(() => {
     if (id === 'novo') {
       setEventoAtual(null)
       setParticipantes([])
@@ -45,18 +45,26 @@ export function EventoPage() {
 
     setError(null)
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       try {
-        const evento = { id: id || '1', nome: 'Workshop React', descricao: 'Workshop de React Avançado', data: '2026-05-15', horario: '14:00', local: 'Auditório Principal', organizadorId: '1', stats: { total: 50, confirmados: 38, compareceu: 32 } }
-        setEventoAtual(evento)
-        setParticipantes([
-          { id: '1', nome: 'João Silva', email: 'joao@email.com', eventoId: '1', qrCode: 'qr1', confirmado: true, confirmadoEm: '2026-05-10T10:00:00Z' },
-          { id: '2', nome: 'Maria Santos', email: 'maria@email.com', eventoId: '1', qrCode: 'qr2', confirmado: true, confirmadoEm: '2026-05-11T14:00:00Z' },
-          { id: '3', nome: 'Pedro Costa', email: 'pedro@email.com', eventoId: '1', qrCode: 'qr3', confirmado: false },
-        ])
+        const eventoRes = await fetch(`/api/evento?id=${id}`)
+        const eventoData = await eventoRes.json()
+        
+        if (eventoData.error) {
+          setError(eventoData.error)
+          setLoading(false)
+          return
+        }
+        
+        setEventoAtual(eventoData)
+
+        const partRes = await fetch(`/api/participantes?eventoId=${id}`)
+        const partData = await partRes.json()
+        
+        setParticipantes(Array.isArray(partData) ? partData : [])
         setLoading(false)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar evento')
+        setError(err instanceof Error ? err.message : 'Erro ao carregar')
         setLoading(false)
       }
     }, 300)
@@ -64,17 +72,34 @@ export function EventoPage() {
     return () => clearTimeout(timer)
   }, [id, setEventoAtual, setParticipantes])
 
-  const handleAddParticipante = () => {
+  const handleAddParticipante = async () => {
     if (!novoParticipante.nome || !novoParticipante.email) return
 
-    const participante: Participante = {
-      id: generateId(),
-      nome: novoParticipante.nome,
-      email: novoParticipante.email,
-      telefone: novoParticipante.telefone,
-      eventoId: id || '1',
-      qrCode: generateId(),
-      confirmado: false,
+    try {
+      const res = await fetch('/api/participantes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: novoParticipante.nome,
+          email: novoParticipante.email,
+          telefone: novoParticipante.telefone,
+          eventoId: id,
+        }),
+      })
+
+      if (!res.ok) {
+        alert('Erro ao adicionar')
+        return
+      }
+
+      const novo = await res.json()
+      addParticipante(novo)
+      setNovoParticipante({ nome: '', email: '', telefone: '' })
+      setShowAddModal(false)
+    } catch {
+      alert('Erro ao adicionar')
+    }
+  }
     }
 
     addParticipante(participante)

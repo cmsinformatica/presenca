@@ -14,11 +14,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   try {
-    // Buscar participante pelo nome e evento
+    // Buscar participante pelo nome EXATO no evento
     const participante = await prisma.participante.findFirst({
       where: {
         eventoId,
-        nome: { contains: nome, mode: 'insensitive' },
+        nome: { equals: nome.trim(), mode: 'insensitive' },
       },
       include: { evento: true },
     })

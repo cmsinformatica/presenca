@@ -38,11 +38,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
       })
       
       // Mapear os dados para retornar a propriedade stats como o frontend espera
-      const formattedEventos = eventos.map(e => ({
+      const formattedEventos = eventos.map((e: any) => ({
         ...e,
         stats: {
           total: e.participantes.length,
-          confirmados: e.participantes.filter(p => p.confirmado).length,
+          confirmados: e.participantes.filter((p: any) => p.confirmado).length,
           compareceu: e.checkins.length
         }
       }))

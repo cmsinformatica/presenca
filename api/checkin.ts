@@ -48,7 +48,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     // Gravar no BD
-    const checkin = await prisma.checkin.create({
+    const checkin = await prisma.checkIn.create({
       data: {
         participanteId: participante.id,
         eventoId: qrData.e ? Buffer.from(qrData.e, 'base64').toString('utf-8') : (eventoId || participante.eventoId),

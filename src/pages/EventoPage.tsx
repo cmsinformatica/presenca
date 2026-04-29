@@ -74,14 +74,14 @@ export function EventoPage() {
 
   const eventoParticipantes = participantes.filter((p) => p.eventoId === (id || eventoAtual?.id))
 
-  const handleCreateEvento = () => {
+  const handleCreateEvento = async () => {
     if (!formData.nome || !formData.data || !formData.horario || !formData.local) {
       alert('Preencha todos os campos obrigatórios')
       return
     }
 
-    const novoEvento: Evento = {
-      id: generateId(),
+    const novoEvento = {
+      id: '', // Placeholder, será gerado pelo BD
       nome: formData.nome,
       descricao: formData.descricao,
       data: formData.data,
@@ -91,8 +91,12 @@ export function EventoPage() {
       stats: { total: 0, confirmados: 0, compareceu: 0 },
     }
 
-    addEvento(novoEvento)
-    navigate(`/evento/${novoEvento.id}`)
+    const created = await addEvento(novoEvento)
+    if (created && created.id) {
+      navigate(`/evento/${created.id}`)
+    } else {
+      alert('Erro ao criar evento.')
+    }
   }
 
   const handleAddParticipante = () => {

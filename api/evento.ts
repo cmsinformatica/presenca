@@ -78,7 +78,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const { id } = request.query
       if (!id) return response.status(400).json({ error: 'ID obrigatório' })
 
-      const updates = request.body
+      const updates = { ...request.body }
+      delete updates.id
+      delete updates.stats
+      delete updates.participantes
+      delete updates.checkins
+
       const updated = await prisma.evento.update({
         where: { id: String(id) },
         data: updates

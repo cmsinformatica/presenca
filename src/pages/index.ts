@@ -1,0 +1,6 @@
+export { LoginPage } from './LoginPage'
+export { DashboardPage } from './DashboardPage'
+export { EventoPage } from './EventoPage'
+export { PortariaPage } from './PortariaPage'
+export { ParticipantePage } from './ParticipantePage'
+export { ConfirmarPage } from './ConfirmarPage'

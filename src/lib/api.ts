@@ -1,32 +1,39 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('token')
-  
-  const headers: HeadersInit = {
+interface RequestOptions extends RequestInit {
+  token?: string
+}
+
+async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  const { token, body, method = 'GET', ...fetchOptions } = options
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: { ...headers, ...options?.headers },
+    method,
+    headers,
+    body,
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Erro na requisição' }))
-    throw new Error(error.message || 'Erro na requisição')
+    const error = await response.json().catch(() => ({ error: 'Erro na requisição' }))
+    throw new Error(error.error || 'Erro na requisição')
   }
 
   return response.json()
 }
 
 export const api = {
-  get: <T>(endpoint: string) => request<T>(endpoint),
-  post: <T>(endpoint: string, data: unknown) =>
-    request<T>(endpoint, { method: 'POST', body: JSON.stringify(data) }),
-  put: <T>(endpoint: string, data: unknown) =>
-    request<T>(endpoint, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: <T>(endpoint: string) =>
-    request<T>(endpoint, { method: 'DELETE' }),
+  get: <T>(endpoint: string, token?: string) => request<T>(endpoint, { method: 'GET', token }),
+  post: <T>(endpoint: string, data?: unknown, token?: string) =>
+    request<T>(endpoint, { method: 'POST', body: JSON.stringify(data), token }),
+  put: <T>(endpoint: string, data?: unknown, token?: string) =>
+    request<T>(endpoint, { method: 'PUT', body: JSON.stringify(data), token }),
+  delete: <T>(endpoint: string, token?: string) => request<T>(endpoint, { method: 'DELETE', token }),
 }

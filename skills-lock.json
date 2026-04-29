@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "senior-fullstack": {
+      "source": "agent-skills-hub/agent-skills-hub",
+      "sourceType": "github",
+      "skillPath": "skills/senior-fullstack/SKILL.md",
+      "computedHash": "f5e896578aa49e4d9b573c9950336cada44821bf7a1d4771b547c05bf2e42449"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/skill-creator/SKILL.md",
+      "computedHash": "7e3c9cd74e9e2b4828527a857170e86310f2dab5ea8030a9043df2c7e6c88857"
+    }
+  }
+}

@@ -91,11 +91,15 @@ export function EventoPage() {
       stats: { total: 0, confirmados: 0, compareceu: 0 },
     }
 
-    const created = await addEvento(novoEvento)
-    if (created && created.id) {
-      navigate(`/evento/${created.id}`)
-    } else {
-      alert('Erro ao criar evento.')
+    try {
+      const created = await addEvento(novoEvento)
+      if (created && created.id) {
+        navigate(`/evento/${created.id}`)
+      } else {
+        alert('Erro: Evento criado mas sem ID retornado.')
+      }
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`)
     }
   }
 

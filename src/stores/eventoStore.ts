@@ -44,19 +44,22 @@ export const useEventoStore = create<EventoState>()((set, get) => ({
   setEventoAtual: (evento) => set({ eventoAtual: evento }),
 
   addEvento: async (eventoData) => {
-    try {
-      const res = await fetch('/api/evento', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventoData),
-      })
-      if (!res.ok) throw new Error('Erro ao criar evento')
-      const data = await res.json()
-      set((state) => ({ eventos: [...state.eventos, data] }))
-      return data
-    } catch (err: any) {
-      console.error(err)
+    const res = await fetch('/api/evento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(eventoData),
+    })
+    if (!res.ok) {
+      let errStr = 'Erro ao criar evento'
+      try {
+        const errData = await res.json()
+        errStr += `: ${errData.details || errData.error || res.statusText}`
+      } catch (e) {}
+      throw new Error(errStr)
     }
+    const data = await res.json()
+    set((state) => ({ eventos: [...state.eventos, data] }))
+    return data
   },
 
   updateEvento: async (id, updates) => {

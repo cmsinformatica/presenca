@@ -46,15 +46,18 @@ export function ConfirmarPage() {
     if (!dados || !codigo) return
     setEnviando(true)
     try {
-      const existing = participantes.find((p) => p.email === dados.email && p.nome === dados.nome)
-      if (existing) {
-        updateParticipante(existing.id, { confirmado: true, confirmadoEm: new Date().toISOString(), telefone })
-      } else {
-        addParticipante({ id: generateId(), nome: dados.nome, email: dados.email, telefone, eventoId: '', qrCode: generateId(), confirmado: true, confirmadoEm: new Date().toISOString() })
-      }
-      fetch('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'confirm', participanteNome: dados.nome, eventNome: dados.eventoNome, telefone }) }).catch(() => {})
+      const res = await fetch('/api/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo, telefone, nome: dados.nome, email: dados.email })
+      })
+      if (!res.ok) throw new Error('Erro na API')
       setConfirmado(true)
-    } catch { alert('Erro ao confirmar.') } finally { setEnviando(false) }
+    } catch {
+      alert('Erro ao confirmar.')
+    } finally {
+      setEnviando(false)
+    }
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>

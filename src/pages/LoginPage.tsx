@@ -18,9 +18,12 @@ export function LoginPage() {
 
     try {
       const normalizedEmail = email.trim().toLowerCase()
-      if (normalizedEmail === 'demo@demo.com' && password === 'demo') {
+      if (
+        (normalizedEmail === 'demo@demo.com' && password === 'demo') ||
+        (normalizedEmail === 'admin@presenca.com' && password === 'admin')
+      ) {
         login(
-          { id: '1', email: 'demo@demo.com', nome: 'Demo' },
+          { id: '1', email: normalizedEmail, nome: normalizedEmail === 'admin@presenca.com' ? 'Administrador' : 'Demo' },
           'demo-token'
         )
         navigate('/dashboard')
@@ -66,7 +69,9 @@ export function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          Demo: demo@demo.com / demo
+          Acesso liberado para:<br/>
+          demo@demo.com / demo<br/>
+          admin@presenca.com / admin
         </p>
       </Card>
     </div>

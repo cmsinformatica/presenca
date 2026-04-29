@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
 
 export interface Evento {
   id: string
@@ -17,36 +16,77 @@ interface EventoState {
   eventoAtual: Evento | null
   loading: boolean
   error: string | null
-  setEventos: (eventos: Evento[]) => void
+  fetchEventos: () => Promise<void>
   setEventoAtual: (evento: Evento | null) => void
-  setLoading: (loading: boolean) => void
-  setError: (error: string | null) => void
-  addEvento: (evento: Evento) => void
-  updateEvento: (id: string, updates: Partial<Evento>) => void
-  removeEvento: (id: string) => void
+  addEvento: (evento: Evento) => Promise<Evento | undefined>
+  updateEvento: (id: string, updates: Partial<Evento>) => Promise<void>
+  removeEvento: (id: string) => Promise<void>
 }
 
-export const useEventoStore = create<EventoState>()(
-  persist(
-    (set) => ({
-      eventos: [],
-      eventoAtual: null,
-      loading: false,
-      error: null,
-      setEventos: (eventos) => set({ eventos }),
-      setEventoAtual: (evento) => set({ eventoAtual: evento }),
-      setLoading: (loading) => set({ loading }),
-      setError: (error) => set({ error }),
-      addEvento: (evento) => set((state) => ({ eventos: [...state.eventos, evento] })),
-      updateEvento: (id, updates) =>
-        set((state) => ({
-          eventos: state.eventos.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-        })),
-      removeEvento: (id) =>
-        set((state) => ({
-          eventos: state.eventos.filter((e) => e.id !== id),
-        })),
-    }),
-    { name: 'evento-storage', storage: createJSONStorage(() => localStorage) }
-  )
-)
+export const useEventoStore = create<EventoState>()((set, get) => ({
+  eventos: [],
+  eventoAtual: null,
+  loading: false,
+  error: null,
+  
+  fetchEventos: async () => {
+    set({ loading: true, error: null })
+    try {
+      const res = await fetch('/api/evento')
+      if (!res.ok) throw new Error('Falha ao carregar eventos')
+      const data = await res.json()
+      set({ eventos: data, loading: false })
+    } catch (err: any) {
+      set({ error: err.message, loading: false })
+    }
+  },
+
+  setEventoAtual: (evento) => set({ eventoAtual: evento }),
+
+  addEvento: async (eventoData) => {
+    try {
+      const res = await fetch('/api/evento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventoData),
+      })
+      if (!res.ok) throw new Error('Erro ao criar evento')
+      const data = await res.json()
+      set((state) => ({ eventos: [...state.eventos, data] }))
+      return data
+    } catch (err: any) {
+      console.error(err)
+    }
+  },
+
+  updateEvento: async (id, updates) => {
+    try {
+      const res = await fetch(`/api/evento?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (!res.ok) throw new Error('Erro ao atualizar evento')
+      const data = await res.json()
+      set((state) => ({
+        eventos: state.eventos.map((e) => (e.id === id ? { ...e, ...data } : e)),
+        eventoAtual: state.eventoAtual?.id === id ? { ...state.eventoAtual, ...data } : state.eventoAtual
+      }))
+    } catch (err: any) {
+      console.error(err)
+    }
+  },
+
+  removeEvento: async (id) => {
+    try {
+      const res = await fetch(`/api/evento?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao deletar evento')
+      set((state) => ({
+        eventos: state.eventos.filter((e) => e.id !== id),
+        eventoAtual: state.eventoAtual?.id === id ? null : state.eventoAtual
+      }))
+    } catch (err: any) {
+      console.error(err)
+    }
+  },
+}))

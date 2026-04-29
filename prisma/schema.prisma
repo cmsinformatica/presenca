@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Evento {
+  id            String   @id @default(cuid())
+  nome          String
+  descricao     String?
+  data          String
+  horario       String
+  local         String
+  organizadorId String
+  criadoEm      DateTime @default(now())
+  
+  participantes Participante[]
+  checkins      Checkin[]
+}
+
+model Participante {
+  id           String   @id @default(cuid())
+  nome         String
+  email        String
+  telefone     String?
+  eventoId     String
+  qrCode       String   @unique
+  confirmado   Boolean  @default(false)
+  confirmadoEm DateTime?
+  criadoEm     DateTime @default(now())
+  
+  evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  checkins     Checkin[]
+
+  @@unique([email, eventoId])
+}
+
+model Checkin {
+  id             String   @id @default(cuid())
+  participanteId String
+  eventoId       String
+  verificadoPor  String
+  timestamp      DateTime @default(now())
+  
+  participante   Participante @relation(fields: [participanteId], references: [id], onDelete: Cascade)
+  evento         Evento       @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+}

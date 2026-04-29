@@ -26,8 +26,8 @@ import { generateId, generateQRCode, generateInviteLink, formatDate, formatDateT
 export function EventoPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { eventos, eventoAtual, setEventoAtual, addEvento, updateEvento, removeEvento } = useEventoStore()
-  const { participantes, addParticipante, addParticipantes, removeParticipante, updateParticipante } =
+  const { eventos, eventoAtual, setEventoAtual, addEvento, updateEvento, removeEvento, fetchEventos } = useEventoStore()
+  const { participantes, addParticipante, addParticipantes, removeParticipante, fetchParticipantes } =
     useParticipanteStore()
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -53,13 +53,24 @@ export function EventoPage() {
       return
     }
 
-    // Buscar evento do store local
-    const evento = eventos.find((e) => e.id === id)
-    if (evento) {
-      setEventoAtual(evento)
+    const loadData = async () => {
+      await fetchEventos()
+      await fetchParticipantes(id)
     }
-    setLoading(false)
-  }, [id, eventos, setEventoAtual])
+    
+    loadData().then(() => {
+      setLoading(false)
+    })
+  }, [id, fetchEventos, fetchParticipantes, setEventoAtual])
+
+  useEffect(() => {
+    if (id !== 'novo' && eventos.length > 0) {
+      const evento = eventos.find((e) => e.id === id)
+      if (evento) {
+        setEventoAtual(evento)
+      }
+    }
+  }, [eventos, id, setEventoAtual])
 
   const eventoParticipantes = participantes.filter((p) => p.eventoId === (id || eventoAtual?.id))
 

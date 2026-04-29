@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, QrCode, LogOut, Calendar, MapPin, Clock, Users } from 'lucide-react'
 import { Button, Card, Badge } from '../components/ui'
@@ -8,8 +8,13 @@ import { formatDate } from '../lib/utils'
 export function DashboardPage() {
   const navigate = useNavigate()
   const { organizador, logout } = useAuthStore()
-  const { eventos } = useEventoStore()
-  const { participantes } = useParticipanteStore()
+  const { eventos, fetchEventos } = useEventoStore()
+  const { participantes, fetchParticipantes } = useParticipanteStore()
+
+  useEffect(() => {
+    fetchEventos()
+    fetchParticipantes()
+  }, [fetchEventos, fetchParticipantes])
 
   const handleLogout = () => {
     logout()

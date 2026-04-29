@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node'
+import { prisma } from './lib/prisma'
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   response.setHeader('Access-Control-Allow-Origin', '*')
@@ -30,19 +31,40 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     const [tipo, eventoNome, participanteNome, participanteEmail] = parts
 
-    // Gerar QR Code para o participante
+    // Buscar participante pelo email e evento (ou apenas email, dependendo da regra)
+    const participante = await prisma.participante.findFirst({
+      where: {
+        email: participanteEmail || email
+      }
+    })
+
+    if (!participante) {
+      return response.status(404).json({ error: 'Participante não encontrado no banco de dados.' })
+    }
+
+    // Atualizar no banco
+    const updated = await prisma.participante.update({
+      where: { id: participante.id },
+      data: {
+        confirmado: true,
+        confirmadoEm: new Date(),
+        telefone: telefone || participante.telefone
+      }
+    })
+
+    // Gerar QR Code data
     const qrData = JSON.stringify({
       t: 'P',
       e: Buffer.from(eventoNome || '').toString('base64'),
-      p: codigo,
+      p: updated.qrCode,
     })
 
     const confirmacao = {
-      nome: participanteNome || nome,
-      email: participanteEmail || email,
-      telefone: telefone || '',
+      nome: updated.nome,
+      email: updated.email,
+      telefone: updated.telefone || '',
       confirmado: true,
-      confirmadoEm: new Date().toISOString(),
+      confirmadoEm: updated.confirmadoEm?.toISOString(),
       qrCode: qrData,
     }
 
@@ -63,7 +85,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     return response.status(200).json(confirmacao)
-  } catch {
+  } catch (error: any) {
+    console.error('Confirmar Error:', error)
     return response.status(400).json({ error: 'Erro ao processar confirmação' })
   }
 }

@@ -17,7 +17,8 @@ export function LoginPage() {
     setLoading(true)
 
     try {
-      if (email === 'demo@demo.com' && password === 'demo') {
+      const normalizedEmail = email.trim().toLowerCase()
+      if (normalizedEmail === 'demo@demo.com' && password === 'demo') {
         login(
           { id: '1', email: 'demo@demo.com', nome: 'Demo' },
           'demo-token'
